@@ -1,3 +1,5 @@
+#PCAogThiagoScript.py (plus some perosnal edits)
+
 # -*- coding: utf-8 -*-
 """
 Created on Thu Aug  8 16:25:17 2024
@@ -17,23 +19,41 @@ def execute(command, logFile=""):
 
 def convertPfileToBfile(pfile, name, folder, plink2, logFile):
     outputPrefix = f"{folder}/{name}"
-    commandLine = f"{plink2} --pfile {pfile} --make-bed --out {outputPrefix} --double-id --keep-allele-order --chr 1-22"
+    commandLine = f"{plink2} --pfile {pfile} --make-bed --out {outputPrefix} --double-id --keep-allele-order --chr 1-22 --set-all-var-ids @:#:\\$r:\\$a --new-id-max-allele-len 96"
 
     execute(commandLine)
+
+    seen = set()
+    duplicates = []
+    with open(f"{outputPrefix}.bim") as bimFile:
+        for line in bimFile:
+            varID = line.strip().split()[1]
+            if varID in seen:
+                duplicates.append(varID)
+            else:
+                seen.add(varID)
+    if duplicates:
+        print(f"WARNING: {len(duplicates)} duplicate variant IDs found in {outputPrefix}.bim")
+        for dup in duplicates[:10]:
+            print(f"  Duplicate ID: {dup}")
+        if len(duplicates) > 10:
+            print(f"  ... and {len(duplicates) - 10} more")
+    else:
+        print(f"OK: No duplicate variant IDs found in {outputPrefix}.bim")
 
     return outputPrefix
 
 
 def mergeCommonFiles(file1, file2, name, folder, plink1, logFile):
     outputPrefix = f"{folder}/{name}"
-    commandLine = f"{plink1} --bfile {file1} --bmerge {file2} --make-bed --out {outputPrefix}"
+    commandLine = f"{plink1} --bfile {file1} --bmerge {file2} --make-bed --keep-allele-order --out {outputPrefix}"
 
     execute(commandLine)
     return outputPrefix
 
 def extractVariants(bfile, extractFile, name, folder, plink1, logFile):
     outputPrefix = f"{folder}/{name}"
-    commandLine = f"{plink1} --bfile {bfile} --make-bed --out {outputPrefix} --extract {extractFile}"
+    commandLine = f"{plink1} --bfile {bfile} --make-bed --keep-allele-order --out {outputPrefix} --extract {extractFile}"
 
     execute(commandLine, logFile)
 
@@ -57,7 +77,7 @@ def mergeRefAndTarget(bfileTarget, bfileRef, folder, name, plink1, logFile):
 
     execute(f"mkdir {folder}/{name}_MergeRefAlt")
 
-    command = f"{plink1} --bfile {bfileTarget} --make-bed --out {folder}/{name}_MergeRefAlt/TargetMAF --maf 0.01"
+    command = f"{plink1} --bfile {bfileTarget} --make-bed --keep-allele-order --out {folder}/{name}_MergeRefAlt/TargetMAF --maf 0.01"
     execute(command, logFile)
     execute(f"cp {folder}/{name}_MergeRefAlt/TargetMAF.bed {folder}/{name}_MergeRefAlt/TargetMAFID.bed")
     execute(f"cp {folder}/{name}_MergeRefAlt/TargetMAF.fam {folder}/{name}_MergeRefAlt/TargetMAFID.fam")
