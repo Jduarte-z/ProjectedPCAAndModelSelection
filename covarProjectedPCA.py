@@ -17,9 +17,10 @@ def execute(command, logFile=""):
 
 
 
-def convertPfileToBfile(pfile, name, folder, plink2, logFile):
+def convertPfileToBfile(pfile, name, folder, plink2, logFile, setVarIds=True):
     outputPrefix = f"{folder}/{name}"
-    commandLine = f"{plink2} --pfile {pfile} --make-bed --out {outputPrefix} --double-id --keep-allele-order --chr 1-22 --set-all-var-ids @:#:\\$r:\\$a --new-id-max-allele-len 96"
+    varIdFlag = " --set-all-var-ids @:#:\\$r:\\$a --new-id-max-allele-len 96" if setVarIds else ""
+    commandLine = f"{plink2} --pfile {pfile} --make-bed --out {outputPrefix} --double-id --keep-allele-order --chr 1-22{varIdFlag}"
 
     execute(commandLine)
 
@@ -354,7 +355,7 @@ if __name__ == '__main__':
     if args.AutosomalRef != "":
         # Projected PCA
         if os.path.isfile(f"{args.AutosomalRef}.pgen"):
-            args.AutosomalRef = convertPfileToBfile(args.AutosomalRef, "Ref", args.folder, args.plink2, logFile)
+            args.AutosomalRef = convertPfileToBfile(args.AutosomalRef, "Ref", args.folder, args.plink2, logFile, setVarIds=False)
 
 
         bfileMerged, targetCommon, refCommon = mergeRefAndTarget(args.autosomal, args.AutosomalRef, args.folder, f"{args.name}_AutosomalPCA", args.plink1, logFile)
